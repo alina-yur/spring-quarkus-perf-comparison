@@ -6,9 +6,10 @@ scripts:
         java_version: ${{config.jvm.graalvm.version}}
         install_if_missing: true
     - log: Setting GRAALVM_HOME
-    - sh: export GRAALVM_HOME=$(sdk home java ${{config.jvm.graalvm.version}})
+    - sh: export GRAALVM_HOME=$JAVA_HOME
     - log: Showing GraalVM version
     - sh: $GRAALVM_HOME/bin/java -version
+    - sh: $GRAALVM_HOME/bin/native-image --version
 
   ensure-java:
     - script: sdk-select-java
