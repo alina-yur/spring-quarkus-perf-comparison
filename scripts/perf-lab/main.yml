@@ -5,7 +5,7 @@ states:
   env.run.host.target: ${{env.run.host.user}}@${{env.run.host.name}}
 
   config.jvm.version: 25.0.2-tem
-  config.jvm.graalvm.version: 25.0.2-graalce
+  config.jvm.graalvm.version: 25.0.2-graal
 
   config.quarkus.version: #3.28.3
   config.springboot3.version: #3.5.6
@@ -43,7 +43,7 @@ states:
   PROFILER_JVM_ARGS:
   BASE_JAVA_CMD: ${{APP_CMD_PREFIX}} java ${{config.jvm.memory}} ${{config.jvm.args}} ${{PROFILER_JVM_ARGS}}
   TESTS : [test-build, measure-build-times, measure-time-to-first-request, measure-rss, run-load-test]
-  RUNTIMES: [quarkus3-jvm, quarkus3-virtual, quarkus3-native, spring3-jvm, spring3-virtual, spring3-jvm-aot, spring3-native, spring4-jvm, spring4-virtual, spring4-jvm-aot, spring4-native]
+  RUNTIMES: [quarkus3-jvm, quarkus3-virtual, quarkus3-native, quarkus3-native-g1, quarkus3-native-pgo, quarkus3-native-pgo-g1, spring3-jvm, spring3-virtual, spring3-jvm-aot, spring3-native, spring3-native-g1, spring3-native-pgo, spring3-native-pgo-g1, spring4-jvm, spring4-virtual, spring4-jvm-aot, spring4-native, spring4-native-g1, spring4-native-pgo, spring4-native-pgo-g1]
   TARGET_URL: http://localhost:8080/fruits
   QUARKUS-PLATFORM-ARTIFACT-ID: quarkus-bom
   PROJ_REPO_NAME: spring-quarkus-perf-comparison
@@ -72,6 +72,32 @@ states:
       updateScript: update-quarkus-version
       updateVersion: ${{config.quarkus.version}}
       buildCmd: "./mvnw ${{config.quarkus.build_config_args}} clean package -DskipTests -Pnative ${{config.quarkus.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{QUARKUS3_DIR}}/target/quarkus3-runner ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*quarkus3.+started in.*"
+    - name: quarkus3-native-g1
+      type: native
+      dir: ${{QUARKUS3_DIR}}
+      updateScript: update-quarkus-version
+      updateVersion: ${{config.quarkus.version}}
+      buildCmd: "./mvnw ${{config.quarkus.build_config_args}} clean package -DskipTests -Pnative -Pg1 ${{config.quarkus.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{QUARKUS3_DIR}}/target/quarkus3-runner ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*quarkus3.+started in.*"
+    - name: quarkus3-native-pgo
+      type: native
+      dir: ${{QUARKUS3_DIR}}
+      updateScript: update-quarkus-version
+      updateVersion: ${{config.quarkus.version}}
+      buildCmd: "./mvnw ${{config.quarkus.build_config_args}} clean package -DskipTests -Pnative -Ppgo ${{config.quarkus.native_build_options}}"
+      pgoProfileBuildCmd: "./mvnw ${{config.quarkus.build_config_args}} clean package -DskipTests -Pnative -Pinstrumented ${{config.quarkus.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{QUARKUS3_DIR}}/target/quarkus3-runner ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*quarkus3.+started in.*"
+    - name: quarkus3-native-pgo-g1
+      type: native
+      dir: ${{QUARKUS3_DIR}}
+      updateScript: update-quarkus-version
+      updateVersion: ${{config.quarkus.version}}
+      buildCmd: "./mvnw ${{config.quarkus.build_config_args}} clean package -DskipTests -Pnative -Ppgo-g1 ${{config.quarkus.native_build_options}}"
+      pgoProfileBuildCmd: "./mvnw ${{config.quarkus.build_config_args}} clean package -DskipTests -Pnative -Pinstrumented ${{config.quarkus.native_build_options}}"
       runCmd: "${{APP_CMD_PREFIX}} ${{QUARKUS3_DIR}}/target/quarkus3-runner ${{config.jvm.memory}}"
       logFileStartedRegex: ".*quarkus3.+started in.*"
     - name: spring3-jvm
@@ -106,6 +132,32 @@ states:
       buildCmd: "./mvnw clean -Pnative -DskipTests native:compile package ${{config.springboot3.native_build_options}}"
       runCmd: "${{APP_CMD_PREFIX}} ${{SPRING3_BOOT_DIR}}/target/springboot3 ${{config.jvm.memory}}"
       logFileStartedRegex: ".*Started SpringBoot3Application in.+seconds.*"
+    - name: spring3-native-g1
+      type: native
+      dir: ${{SPRING3_BOOT_DIR}}
+      updateScript: update-spring-boot-version
+      updateVersion: ${{config.springboot3.version}}
+      buildCmd: "./mvnw clean -Pnative -Pg1 -DskipTests native:compile package ${{config.springboot3.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{SPRING3_BOOT_DIR}}/target/springboot3 ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*Started SpringBoot3Application in.+seconds.*"
+    - name: spring3-native-pgo
+      type: native
+      dir: ${{SPRING3_BOOT_DIR}}
+      updateScript: update-spring-boot-version
+      updateVersion: ${{config.springboot3.version}}
+      buildCmd: "./mvnw clean -Pnative -Ppgo -DskipTests native:compile package ${{config.springboot3.native_build_options}}"
+      pgoProfileBuildCmd: "./mvnw clean -Pnative -Pinstrumented -DskipTests native:compile package ${{config.springboot3.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{SPRING3_BOOT_DIR}}/target/springboot3 ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*Started SpringBoot3Application in.+seconds.*"
+    - name: spring3-native-pgo-g1
+      type: native
+      dir: ${{SPRING3_BOOT_DIR}}
+      updateScript: update-spring-boot-version
+      updateVersion: ${{config.springboot3.version}}
+      buildCmd: "./mvnw clean -Pnative -Ppgo-g1 -DskipTests native:compile package ${{config.springboot3.native_build_options}}"
+      pgoProfileBuildCmd: "./mvnw clean -Pnative -Pinstrumented -DskipTests native:compile package ${{config.springboot3.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{SPRING3_BOOT_DIR}}/target/springboot3 ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*Started SpringBoot3Application in.+seconds.*"
     - name: spring4-jvm
       type: jvm
       dir: ${{SPRING4_BOOT_DIR}}
@@ -136,6 +188,32 @@ states:
       updateScript: update-spring-boot-version
       updateVersion: ${{config.springboot4.version}}
       buildCmd: "./mvnw clean -Pnative -DskipTests native:compile package ${{config.springboot4.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{SPRING4_BOOT_DIR}}/target/springboot4 ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*Started SpringBoot4Application in.+seconds.*"
+    - name: spring4-native-g1
+      type: native
+      dir: ${{SPRING4_BOOT_DIR}}
+      updateScript: update-spring-boot-version
+      updateVersion: ${{config.springboot4.version}}
+      buildCmd: "./mvnw clean -Pnative -Pg1 -DskipTests native:compile package ${{config.springboot4.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{SPRING4_BOOT_DIR}}/target/springboot4 ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*Started SpringBoot4Application in.+seconds.*"
+    - name: spring4-native-pgo
+      type: native
+      dir: ${{SPRING4_BOOT_DIR}}
+      updateScript: update-spring-boot-version
+      updateVersion: ${{config.springboot4.version}}
+      buildCmd: "./mvnw clean -Pnative -Ppgo -DskipTests native:compile package ${{config.springboot4.native_build_options}}"
+      pgoProfileBuildCmd: "./mvnw clean -Pnative -Pinstrumented -DskipTests native:compile package ${{config.springboot4.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{SPRING4_BOOT_DIR}}/target/springboot4 ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*Started SpringBoot4Application in.+seconds.*"
+    - name: spring4-native-pgo-g1
+      type: native
+      dir: ${{SPRING4_BOOT_DIR}}
+      updateScript: update-spring-boot-version
+      updateVersion: ${{config.springboot4.version}}
+      buildCmd: "./mvnw clean -Pnative -Ppgo-g1 -DskipTests native:compile package ${{config.springboot4.native_build_options}}"
+      pgoProfileBuildCmd: "./mvnw clean -Pnative -Pinstrumented -DskipTests native:compile package ${{config.springboot4.native_build_options}}"
       runCmd: "${{APP_CMD_PREFIX}} ${{SPRING4_BOOT_DIR}}/target/springboot4 ${{config.jvm.memory}}"
       logFileStartedRegex: ".*Started SpringBoot4Application in.+seconds.*"
 
@@ -208,11 +286,18 @@ scripts:
     - sh: mkdir -p ${{REPO_DIR}}/logs
     - sh: cd ${{REPO_DIR}}
     - log: Cloning project repo ${{config.repo.branch}}@${{config.repo.url}}
-    - sh: git clone -b ${{config.repo.branch}} ${{config.repo.url}}
+    - sh: |
+        REPO_URL="${{config.repo.url}}"
+        if [[ "$REPO_URL" =~ ^file:// ]]; then
+          SRC_PATH="${REPO_URL#file://}"
+          cp -a "$SRC_PATH" "${{PROJ_REPO_NAME}}"
+        else
+          git clone -b ${{config.repo.branch}} "$REPO_URL"
+        fi
     - sh: cd ${{PROJ_REPO_NAME}}
     - log: Checked out repo
-    - sh: git remote get-url origin
-    - sh: git branch --show-current
+    - sh: git remote get-url origin || true
+    - sh: git branch --show-current || true
 
   update-spring-boot-version:
     - script: check-dependency-exists
@@ -247,17 +332,73 @@ scripts:
     - for-each: RUNTIME ${{RUNTIMES}}
       then:
         - set-state: RUNTIMECMD ${{RUNTIMECMDS[?(@.name == '${{RUNTIME}}')]}}
-        - log: "Updating version: ${{RUNTIMECMD.updateVersion:}}"
-        - script: ${{RUNTIMECMD.updateScript:abort-script-not-found}}
+        - set-state: RUNTIME_UPDATE_VERSION ${{RUNTIMECMD.updateVersion:}}
+        - read-state: ${{RUNTIME_UPDATE_VERSION}}
+          then:
+            - regex: ^$
+              then:
+                - log: "Skipping version update for ${{RUNTIMECMD.name}} (using pom defaults)"
+              else:
+                - log: "Updating version: ${{RUNTIME_UPDATE_VERSION}}"
+                - script: ${{RUNTIMECMD.updateScript:abort-script-not-found}}
+                  with:
+                    DIR: ${{RUNTIMECMD.dir}}
+                    VERSION: ${{RUNTIME_UPDATE_VERSION}}
+        - script: prepare-pgo-profile
           with:
-            DIR: ${{RUNTIMECMD.dir}}
-            VERSION: ${{RUNTIMECMD.updateVersion:}}
+            RUNTIME: ${{RUNTIMECMD}}
         - log: "Testing: ${{RUNTIME}}"
         - for-each: TEST ${{TESTS}}
           then:
           - script: ${{TEST}}
             with:
               RUNTIME: ${{RUNTIMECMD}}
+
+  prepare-pgo-profile:
+    - read-state: ${{RUNTIME.pgoProfileBuildCmd:}}
+      then:
+        - regex: ^$
+          then:
+            - log: "Skipping PGO profile preparation for ${{RUNTIME.name}}"
+          else:
+            - log: "Preparing PGO profile for ${{RUNTIME.name}}"
+            - sh: cd ${{RUNTIME.dir}}
+            - sh: rm -f ${{RUNTIME.dir}}/default.iprof
+            - sh: rm -f ${{RUNTIME.dir}}/target/default.iprof
+            - sh: rm -f ${{REPO_DIR}}/default.iprof
+            - queue-download: ${{REPO_DIR}}/logs/pgo-profile-${{RUNTIME.name}}.log
+            - queue-download: ${{REPO_DIR}}/logs/wrk-pgo-profile-${{RUNTIME.name}}.log
+            - sh: ${{RUNTIME.pgoProfileBuildCmd}}
+            - script: start-test-services
+            - sh: bash -lc 'cd "${{RUNTIME.dir}}" && exec ${{RUNTIME.runCmd}} -XX:ProfilesDumpFile=${{RUNTIME.dir}}/default.iprof' &>${{REPO_DIR}}/logs/pgo-profile-${{RUNTIME.name}}.log &
+            - sh: APP_PID=$!
+            - sh: timeout 60s bash -c "until curl -sf ${{TARGET_URL}} >/dev/null; do sleep 2; done"
+              then:
+                - regex: Terminated
+                  then:
+                    - sh: kill -15 $APP_PID || true
+                    - script: stop-test-services
+                    - abort: Instrumented runtime ${{RUNTIME.name}} didn't start within allotted timeout
+            - sh: ${{RUN.WRK_BIN}} -t 2 -c 100 -d 30s --timeout 2m ${{TARGET_URL}} 2>&1 >${{REPO_DIR}}/logs/wrk-pgo-profile-${{RUNTIME.name}}.log
+              then:
+                - regex: unable to connect
+                  then:
+                    - sh: kill -15 $APP_PID || true
+                    - script: stop-test-services
+                    - abort: unable to connect to instrumented target application
+            - sh: kill -2 $APP_PID || true
+            - sh: wait $APP_PID || true
+            - sleep: 5s
+            - sh: bash -lc 'for candidate in "${{RUNTIME.dir}}/default.iprof" "${{RUNTIME.dir}}/target/default.iprof" "${{REPO_DIR}}/default.iprof"; do if [ -f "$candidate" ]; then printf "%s\n" "$candidate"; exit 0; fi; done; echo "Missing PGO profile for ${{RUNTIME.name}}"'
+              then:
+                - regex: Missing PGO profile for .*
+                  then:
+                    - script: stop-test-services
+                    - abort: Instrumented runtime ${{RUNTIME.name}} did not produce default.iprof
+                  else:
+                    - set-state: PGO_PROFILE_PATH
+            - sh: bash -lc 'if [ "${{PGO_PROFILE_PATH}}" != "${{RUNTIME.dir}}/default.iprof" ]; then cp "${{PGO_PROFILE_PATH}}" "${{RUNTIME.dir}}/default.iprof"; fi; ls -lh "${{RUNTIME.dir}}/default.iprof"'
+            - script: stop-test-services
 
   abort-script-not-found:
     - abort: script not found
@@ -560,7 +701,7 @@ scripts:
       timer:
         1m:
           - ctrlC
-          - abort: Log file ${{log_file}} didn't match regex ${{log_regex}} after 10 minutes
+          - abort: Log file ${{log_file}} didn't match regex ${{log_regex}} after 1 minute
 
   monitor-processes:
     - set-signal: LOAD_TEST_COMPLETE 1

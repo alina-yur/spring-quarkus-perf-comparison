@@ -148,5 +148,37 @@
         <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
       </properties>
     </profile>
+    <profile>
+      <id>g1</id>
+      <properties>
+        <quarkus.native.enabled>true</quarkus.native.enabled>
+        <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
+        <quarkus.native.additional-build-args>--gc=G1</quarkus.native.additional-build-args>
+      </properties>
+    </profile>
+    <profile>
+      <id>instrumented</id>
+      <properties>
+        <quarkus.native.enabled>true</quarkus.native.enabled>
+        <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
+        <quarkus.native.additional-build-args>--pgo-instrument</quarkus.native.additional-build-args>
+      </properties>
+    </profile>
+    <profile>
+      <id>pgo</id>
+      <properties>
+        <quarkus.native.enabled>true</quarkus.native.enabled>
+        <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
+        <quarkus.native.additional-build-args>--pgo=${project.basedir}/default.iprof</quarkus.native.additional-build-args>
+      </properties>
+    </profile>
+    <profile>
+      <id>pgo-g1</id>
+      <properties>
+        <quarkus.native.enabled>true</quarkus.native.enabled>
+        <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
+        <quarkus.native.additional-build-args>--gc=G1,--pgo=${project.basedir}/default.iprof</quarkus.native.additional-build-args>
+      </properties>
+    </profile>
   </profiles>
 </project>
