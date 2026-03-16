@@ -41,7 +41,7 @@ states:
   DROP_OS_FILESYSTEM_CACHES:
   PAUSE_TIME: 5
   PROFILER_JVM_ARGS:
-  BASE_JAVA_CMD: ${{APP_CMD_PREFIX}} java ${{config.jvm.memory}} ${{config.jvm.args}} ${{PROFILER_JVM_ARGS}}
+  BASE_JAVA_CMD: ${{APP_CMD_PREFIX}} java --add-opens java.base/java.lang=ALL-UNNAMED ${{config.jvm.memory}} ${{config.jvm.args}} ${{PROFILER_JVM_ARGS}}
   TESTS : [test-build, measure-build-times, measure-time-to-first-request, measure-rss, run-load-test]
   RUNTIMES: [quarkus3-jvm, quarkus3-virtual, quarkus3-native, quarkus3-native-g1, quarkus3-native-pgo, quarkus3-native-pgo-g1, spring3-jvm, spring3-virtual, spring3-jvm-aot, spring3-native, spring3-native-g1, spring3-native-pgo, spring3-native-pgo-g1, spring4-jvm, spring4-virtual, spring4-jvm-aot, spring4-native, spring4-native-g1, spring4-native-pgo, spring4-native-pgo-g1]
   TARGET_URL: http://localhost:8080/fruits
@@ -370,7 +370,7 @@ scripts:
             - queue-download: ${{REPO_DIR}}/logs/wrk-pgo-profile-${{RUNTIME.name}}.log
             - sh: ${{RUNTIME.pgoProfileBuildCmd}}
             - script: start-test-services
-            - sh: bash -lc 'cd "${{RUNTIME.dir}}" && exec ${{RUNTIME.runCmd}} -XX:ProfilesDumpFile=${{RUNTIME.dir}}/default.iprof' &>${{REPO_DIR}}/logs/pgo-profile-${{RUNTIME.name}}.log &
+            - sh: bash -lc 'cd "${{RUNTIME.dir}}" && exec ${{RUNTIME.runCmd}}' &>${{REPO_DIR}}/logs/pgo-profile-${{RUNTIME.name}}.log &
             - sh: APP_PID=$!
             - sh: timeout 60s bash -c "until curl -sf ${{TARGET_URL}} >/dev/null; do sleep 2; done"
               then:
