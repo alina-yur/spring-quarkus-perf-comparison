@@ -91,6 +91,10 @@ start_postgres() {
 
 stop_postgres() {
   echo "Stopping PostgreSQL database '${DB_CONTAINER_NAME}'"
+  if ! ${engine} inspect ${DB_CONTAINER_NAME} >/dev/null 2>&1; then
+    echo "PostgreSQL database '${DB_CONTAINER_NAME}' is not running"
+    return 0
+  fi
   ${engine} stop ${DB_CONTAINER_NAME}
 }
 
