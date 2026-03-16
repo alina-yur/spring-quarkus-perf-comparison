@@ -43,8 +43,8 @@ help() {
   echo "  --repo-url <SCM_REPO_URL>                               The SCM repo url"
   echo "                                                              Default: '${SCM_REPO_URL}'"
   echo "  --runtimes <RUNTIMES>                                   The runtimes to test, separated by commas"
-  echo "                                                              Accepted values (1 or more of): quarkus3-jvm, quarkus3-virtual, quarkus3-native, spring3-jvm, spring3-virtual, spring3-jvm-aot, spring3-native, spring4-jvm, spring4-virtual, spring4-jvm-aot, spring4-native"
-  echo "                                                              Default: 'quarkus3-jvm,quarkus-jvm-virtual,quarkus3-native,spring3-jvm,spring3-jvm-aot,spring3-virtual,spring3-native,spring4-jvm,spring4-virtual,spring4-jvm-aot,spring4-native'"
+  echo "                                                              Accepted values (1 or more of): quarkus3-jvm, quarkus3-virtual, quarkus3-native, quarkus3-native-g1, quarkus3-native-pgo, quarkus3-native-pgo-g1, spring3-jvm, spring3-virtual, spring3-jvm-aot, spring3-native, spring3-native-g1, spring3-native-pgo, spring3-native-pgo-g1, spring4-jvm, spring4-virtual, spring4-jvm-aot, spring4-native, spring4-native-g1, spring4-native-pgo, spring4-native-pgo-g1"
+  echo "                                                              Default: 'quarkus3-jvm,quarkus3-virtual,quarkus3-native,quarkus3-native-g1,quarkus3-native-pgo,quarkus3-native-pgo-g1,spring3-jvm,spring3-jvm-aot,spring3-virtual,spring3-native,spring3-native-g1,spring3-native-pgo,spring3-native-pgo-g1,spring4-jvm,spring4-virtual,spring4-jvm-aot,spring4-native,spring4-native-g1,spring4-native-pgo,spring4-native-pgo-g1'"
   echo "  --scenario <SCENARIO>                                   The scenario to run"
   echo "                                                              Accepted values: tuned, ootb"
   echo "                                                              Default: Depends on the value of --repo-branch"
@@ -92,6 +92,24 @@ validate_values() {
   if [ ! -d "$OUTPUT_DIR" ]; then
     mkdir -p $OUTPUT_DIR
   fi
+}
+
+setup_launcher_logging() {
+  local output_basename
+  local timestamp
+
+  output_basename="$(basename "${OUTPUT_DIR}")"
+
+  if [[ -z "${output_basename}" || "${output_basename}" == "." || "${OUTPUT_DIR}" == "/tmp" ]]; then
+    timestamp="$(date -u +"%Y-%m-%dT%H-%M-%SZ")"
+    output_basename="benchmark-run-${timestamp}"
+  fi
+
+  LAUNCHER_LOG="${REPO_ROOT}/${output_basename}.launcher.log"
+
+  : > "${LAUNCHER_LOG}"
+  exec > >(tee "${LAUNCHER_LOG}") 2>&1
+  echo "[TRACE] scope=wrapper phase=launcher-log path=${LAUNCHER_LOG}"
 }
 
 print_values() {
@@ -195,7 +213,24 @@ local first_request_cpu="${current_cpu}"
 local current_cpu=$((current_cpu + 1))
 local monitor_cpu="${current_cpu}"
 
-${JBANG_CMD} io.hyperfoil.tools:qDup:0.10.8 \
+  local -a optional_state_args=()
+
+  if [[ -n "${QUARKUS_VERSION}" ]]; then
+    optional_state_args+=("-S" "config.quarkus.version=${QUARKUS_VERSION}")
+  fi
+
+  if [[ -n "${SPRING_BOOT3_VERSION}" ]]; then
+    optional_state_args+=("-S" "config.springboot3.version=${SPRING_BOOT3_VERSION}")
+  fi
+
+  if [[ -n "${SPRING_BOOT4_VERSION}" ]]; then
+    optional_state_args+=("-S" "config.springboot4.version=${SPRING_BOOT4_VERSION}")
+  fi
+
+  echo "[TRACE] scope=wrapper phase=qdup-launch host=${HOST} output_dir=${OUTPUT_DIR} scenario=${SCENARIO} runtimes=${RUNTIMES} tests=${TESTS_TO_RUN} iterations=${ITERATIONS}"
+
+  set +e
+  ${JBANG_CMD} io.hyperfoil.tools:qDup:0.10.8 \
     -B ${OUTPUT_DIR} \
     -ix \
     ${EXTRA_QDUP_ARGS} \
@@ -212,11 +247,9 @@ ${JBANG_CMD} io.hyperfoil.tools:qDup:0.10.8 \
     -S config.resources.cpu.load_generator="${load_gen_cpus}" \
     -S config.resources.cpu.1st_request="${first_request_cpu}" \
     -S config.resources.cpu.monitor="${monitor_cpu}" \
-    -S config.springboot3.version=${SPRING_BOOT3_VERSION} \
-    -S config.springboot4.version=${SPRING_BOOT4_VERSION} \
+    "${optional_state_args[@]}" \
     -S config.jvm.memory="${JVM_MEMORY}" \
     -S config.quarkus.build_config_args="${QUARKUS_BUILD_CONFIG_ARGS}" \
-    -S config.quarkus.version=${QUARKUS_VERSION} \
     -S config.springboot3.native_build_options="${NATIVE_SPRING3_BUILD_OPTIONS}" \
     -S config.springboot4.native_build_options="${NATIVE_SPRING4_BUILD_OPTIONS}" \
     -S config.profiler.events=cpu \
@@ -232,14 +265,24 @@ ${JBANG_CMD} io.hyperfoil.tools:qDup:0.10.8 \
     -S PAUSE_TIME=${WAIT_TIME} \
     -S TESTS="$(make_json_array $TESTS_TO_RUN)" \
     -S DROP_OS_FILESYSTEM_CACHES=${DROP_OS_FILESYSTEM_CACHES}
+
+  local qdup_status=$?
+  set -e
+
+  echo "[TRACE] scope=wrapper phase=qdup-exit status=${qdup_status} output_dir=${OUTPUT_DIR}"
+  return ${qdup_status}
 }
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+LAUNCHER_LOG=""
 
 # Define defaults
 CPUS="4"
 SCM_REPO_URL="https://github.com/quarkusio/spring-quarkus-perf-comparison.git"
 SCM_REPO_BRANCH="main"
 SCENARIO="tuned"
-GRAALVM_VERSION="25.0.2-graalce"
+GRAALVM_VERSION="25.0.2-graal"
 HOST="LOCAL"
 ITERATIONS="3"
 JAVA_VERSION="25.0.2-tem"
@@ -249,7 +292,7 @@ NATIVE_SPRING4_BUILD_OPTIONS=""
 PROFILER="none"
 QUARKUS_BUILD_CONFIG_ARGS=""
 QUARKUS_VERSION=""
-ALLOWED_RUNTIMES=("quarkus3-jvm" "quarkus3-virtual" "quarkus3-native" "spring3-jvm" "spring3-virtual" "spring3-jvm-aot" "spring3-native" "spring4-jvm" "spring4-virtual" "spring4-jvm-aot" "spring4-native")
+ALLOWED_RUNTIMES=("quarkus3-jvm" "quarkus3-virtual" "quarkus3-native" "quarkus3-native-g1" "quarkus3-native-pgo" "quarkus3-native-pgo-g1" "spring3-jvm" "spring3-virtual" "spring3-jvm-aot" "spring3-native" "spring3-native-g1" "spring3-native-pgo" "spring3-native-pgo-g1" "spring4-jvm" "spring4-virtual" "spring4-jvm-aot" "spring4-native" "spring4-native-g1" "spring4-native-pgo" "spring4-native-pgo-g1")
 RUNTIMES=${ALLOWED_RUNTIMES[@]}
 SPRING_BOOT3_VERSION=""
 SPRING_BOOT4_VERSION=""
@@ -436,6 +479,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+setup_launcher_logging
 validate_values
 calculate_scenario
 print_values

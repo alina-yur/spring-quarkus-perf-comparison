@@ -1,11 +1,29 @@
 name: timestamps helper scripts
 scripts:
+  trace-progress:
+    - log: "[TRACE] scope=${{scope}} phase=${{phase}} runtime=${{runtime:}} test=${{test:}} iteration=${{iteration:}} detail=${{detail:}}"
+
   start-timestamp:
+    - script: trace-progress
+      with:
+        scope: run
+        phase: start
+        detail: role-setup
     - sh: date -u +%FT%TZ
       then:
         - set-state: RUN.output.timing.start
+    - script: trace-progress
+      with:
+        scope: run
+        phase: start-timestamp-captured
+        detail: ${{RUN.output.timing.start}}
 
   stop-timestamp:
     - sh: date -u +%FT%TZ
       then:
         - set-state: RUN.output.timing.stop
+    - script: trace-progress
+      with:
+        scope: run
+        phase: stop
+        detail: ${{RUN.output.timing.stop}}

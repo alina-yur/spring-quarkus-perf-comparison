@@ -58,7 +58,7 @@ The script also has 3 dependencies that need to be resolved before it can be run
 | `--cpus`                         | `<CPUS>`                      | How many CPUs to allocate to the application                                                                                                                                                                            | `4`                                                                                                                  |
 | `--drop-fs-caches`               |                               | Purge/drop OS filesystem caches between iterations                                                                                                                                                                      |                                                                                                                      |
 | `--extra-qdup-args`              | `<EXTRA_QDUP_ARGS>`           | Any extra arguments that need to be passed to qDup ahead of the qDup scripts<br/>**NOTE:** This is an advanced option. Make sure you know what you are doing when using it.                                             |                                                                                                                      |
-| `--graalvm-version`              | `<GRAALVM_VERSION>`           | The GraalVM version to use if running any native tests (from SDKMAN)                                                                                                                                                    | `25.0.1-graalce`                                                                                                     |
+| `--graalvm-version`              | `<GRAALVM_VERSION>`           | The GraalVM version to use if running any native tests (from SDKMAN)                                                                                                                                                    | `25.0.2-graal`                                                                                                       |
 | `--host`                         | `<HOST>`                      | The HOST to run the benchmarks on<br/>`LOCAL` is a keyword that can be used to run everything on the local machine                                                                                                      | `LOCAL`                                                                                                              |
 | `--iterations`                   | `<ITERATIONS>`                | The number of iterations to run each test                                                                                                                                                                               | `3`                                                                                                                  |
 | `--java-version`                 | `<JAVA_VERSION>`              | The Java version to use (from SDKMAN)                                                                                                                                                                                   | `25.0.1-tem`                                                                                                         |
@@ -73,7 +73,7 @@ The script also has 3 dependencies that need to be resolved before it can be run
 | `--quarkus-version`              | `<QUARKUS_VERSION>`           | The Quarkus version to use<br/>**NOTE:** Its a good practice to set this manually to ensure proper version                                                                                                              | Whatever version is set in pom.xml of the Quarkus app                                                                |
 | `--repo-branch`                  | `<SCM_REPO_BRANCH>`           | The branch in the SCM repo                                                                                                                                                                                              | `main`                                                                                                               |
 | `--repo-url`                     | `<SCM_REPO_URL>`              | The SCM repo url                                                                                                                                                                                                        | `https://github.com/quarkusio/spring-quarkus-perf-comparison.git`                                                    |
-| `--runtimes`                     | `<RUNTIMES>`                  | The runtimes to test, separated by commas<br/>Accepted values (1 or more of): `quarkus3-jvm`, `quarkus3-native`, `spring3-jvm`, `spring3-jvm-aot`, `spring3-native`, `spring4-jvm`, `spring4-jvm-aot`, `spring4-native` | `quarkus3-jvm,quarkus3-native,spring3-jvm,spring3-jvm-aot,spring3-native,spring4-jvm,spring4-jvm-aot,spring4-native` |
+| `--runtimes`                     | `<RUNTIMES>`                  | The runtimes to test, separated by commas<br/>Accepted values (1 or more of): `quarkus3-jvm`, `quarkus3-native`, `quarkus3-native-g1`, `quarkus3-native-pgo`, `quarkus3-native-pgo-g1`, `spring3-jvm`, `spring3-jvm-aot`, `spring3-native`, `spring3-native-g1`, `spring3-native-pgo`, `spring3-native-pgo-g1`, `spring4-jvm`, `spring4-jvm-aot`, `spring4-native`, `spring4-native-g1`, `spring4-native-pgo`, `spring4-native-pgo-g1` | `quarkus3-jvm,quarkus3-native,quarkus3-native-g1,quarkus3-native-pgo,quarkus3-native-pgo-g1,spring3-jvm,spring3-jvm-aot,spring3-native,spring3-native-g1,spring3-native-pgo,spring3-native-pgo-g1,spring4-jvm,spring4-jvm-aot,spring4-native,spring4-native-g1,spring4-native-pgo,spring4-native-pgo-g1` |
 | `--springboot3-version`          | `<SPRING_BOOT3_VERSION>`      | The Spring Boot 3.x version to use<br/>**NOTE:** Its a good practice to set this manually to ensure proper version                                                                                                      | Whatever version is set in pom.xml of the Spring Boot 3 app                                                          |
 | `--springboot4-version`          | `<SPRING_BOOT4_VERSION>`      | The Spring Boot 4.x version to use<br/>**NOTE:** Its a good practice to set this manually to ensure proper version                                                                                                      | Whatever version is set in pom.xml of the Spring Boot 4 app                                                          |
 | `--tests`                        | `<TESTS_TO_RUN>`              | The tests to run, separated by commas<br/>Accepted values (1 or more of): `test-build`, `measure-build-times`, `measure-time-to-first-request`, `measure-rss`, `run-load-test`                                          | `test-build,measure-build-times,measure-time-to-first-request,measure-rss,run-load-test`                             |
@@ -86,12 +86,21 @@ The `-r` option accepts one or more of the following values (comma-separated):
 
 - `quarkus3-jvm` - [Quarkus 3](../../quarkus3) on JVM
 - `quarkus3-native` - [Quarkus 3](../../quarkus3) native executable
+- `quarkus3-native-g1` - [Quarkus 3](../../quarkus3) native executable with G1 GC
+- `quarkus3-native-pgo` - [Quarkus 3](../../quarkus3) native executable built with PGO
+- `quarkus3-native-pgo-g1` - [Quarkus 3](../../quarkus3) native executable built with PGO and G1 GC
 - `spring4-jvm` - [Spring Boot 4](../../springboot4) on JVM
 - `spring4-jvm-aot` - [Spring Boot 3](../../springboot4) on JVM with AOT compilation
 - `spring4-native` - [Spring Boot 3](../../springboot4) native executable
+- `spring4-native-g1` - [Spring Boot 4](../../springboot4) native executable with G1 GC
+- `spring4-native-pgo` - [Spring Boot 4](../../springboot4) native executable built with PGO
+- `spring4-native-pgo-g1` - [Spring Boot 4](../../springboot4) native executable built with PGO and G1 GC
 - `spring3-jvm` - [Spring Boot 3](../../springboot3) on JVM
 - `spring3-jvm-aot` - [Spring Boot 3](../../springboot3) on JVM with AOT compilation
 - `spring3-native` - [Spring Boot 3](../../springboot3) native executable
+- `spring3-native-g1` - [Spring Boot 3](../../springboot3) native executable with G1 GC
+- `spring3-native-pgo` - [Spring Boot 3](../../springboot3) native executable built with PGO
+- `spring3-native-pgo-g1` - [Spring Boot 3](../../springboot3) native executable built with PGO and G1 GC
 
 **Default:** All runtimes are tested
 
@@ -149,6 +158,13 @@ If you examine the output directory:
 - All of the `target-host/*.log` files contain the output from the individual tests.
 - The `target-host/metrics.json` file contains all the recorded metrics.
 
+In addition to the qDup output directory, the wrapper always writes its complete console transcript to a launcher log in the repository root:
+
+- `<repo-root>/<basename(OUTPUT_DIR)>.launcher.log`
+- If `OUTPUT_DIR` is left at the default `/tmp`, the wrapper uses `benchmark-run-<UTC timestamp>.launcher.log`
+
+That launcher log includes the wrapper configuration block, qDup startup output, streamed benchmark progress, and the final wrapper exit trace.
+
 ## Examples
 ### Basic Local Benchmark
 
@@ -177,7 +193,7 @@ Runs [all the tests](#available-tests) against [all the runtimes](#available-run
     --quarkus-version 3.28.4 \
     --springboot3-version 3.5.6 \
     --tests 'measure-build-times,measure-time-to-first-request,measure-rss,run-load-test' \
-    --runtimes 'quarkus3-jvm,quarkus3-native,spring4-jvm,spring4-jvm-aot,spring4-native,spring3-jvm,spring3-jvm-aot,spring3-native' \
+    --runtimes 'quarkus3-jvm,quarkus3-native,quarkus3-native-g1,quarkus3-native-pgo,quarkus3-native-pgo-g1,spring4-jvm,spring4-jvm-aot,spring4-native,spring4-native-g1,spring4-native-pgo,spring4-native-pgo-g1,spring3-jvm,spring3-jvm-aot,spring3-native,spring3-native-g1,spring3-native-pgo,spring3-native-pgo-g1' \
     --iterations 5 \
     --repo-url https://github.com/<some_user>/spring-quarkus-perf-comparison.git \
     --repo-branch another-branch \
@@ -191,6 +207,7 @@ Runs [all the tests](#available-tests) against [all the runtimes](#available-run
 - **Remote Execution:** When using a HOST other than `LOCAL`, the `--user` (USER) parameter is required.
 - **Resource Constraints:** The `--cpus` (CPU constraints) and `--jvm-memory` (memory constraints) options use cgroups to limit resources available to the benchmarked applications.
 - **Profiling:** When profiling is enabled, async profiler will be used to generate JFR files or flamegraphs depending on the selected option.
+- **PGO runtimes:** PGO runtimes automatically build an instrumented native image, provision PostgreSQL, run a workload to generate `default.iprof`, and then rebuild the requested PGO variant before collecting benchmark metrics.
 
 ## Exit Codes
 

@@ -12,34 +12,35 @@ scripts:
         - sh: sed -i 's/.*.sdkman.*//g' /home/${{me}}/.bashrc
 
   sdkman-install: #https://sdkman.io/install
-    - sh:
-        command: sdk help
-        ignore-exit-code: true
-        prompt:
-          "Would you like to upgrade now? (Y/n): ": "Y"
-    - regex: ".*command not found"
+    - read-state: ${{RUN.sdkman.ready:}}
       then:
-        - log: Installing SDKMAN
-        - sh: curl -s "https://get.sdkman.io" | bash
+        - regex: true
           then:
-            - regex: "Enjoy"
+            - log: SDKMAN already prepared
+          else:
+            - sh:
+                command: sdk help
+                ignore-exit-code: true
+                prompt:
+                  "Would you like to upgrade now? (Y/n): ": "n"
+            - regex: ".*command not found"
+              then:
+                - log: Installing SDKMAN
+                - sh: curl -s "https://get.sdkman.io" | bash
+                  then:
+                    - regex: "Enjoy"
+                      else:
+                        - abort: failed to install SDKMAN
+                - sh: source "$HOME/.sdkman/bin/sdkman-init.sh"
               else:
-                - abort: failed to install SDKMAN
-        - sh: source "$HOME/.sdkman/bin/sdkman-init.sh"
-      else:
-        - log: Updating SDKMAN
-        - sh: sdk flush
-        - sh: sdk selfupdate force
-          then:
-            - regex: "Successfully upgraded SDKMAN"
-              else:
-                - abort: failed to upgrade SDKMAN
-    - sh:
-        command: sdk version
-        prompt:
-          "Would you like to upgrade now? (Y/n): ": "Y"
-      then:
-        - regex: "SDKMAN (?<RUN.sdk_version>[\\d\\.\\+]+)"
+                - log: Using installed SDKMAN
+            - sh:
+                command: sdk version
+                prompt:
+                  "Would you like to upgrade now? (Y/n): ": "n"
+              then:
+                - regex: "SDKMAN (?<RUN.sdk_version>[\\d\\.\\+]+)"
+            - set-state: RUN.sdkman.ready true
 
   sdk-select-java:
     - sh: echo ${{install_if_missing:false}}
@@ -48,7 +49,7 @@ scripts:
           then:
             - script: sdkman-install
     - sh:
-        command: sdk flush && sdk install java ${{java_version}}
+        command: sdk install java ${{java_version}}
         prompt:
           "set as default? (Y/n): ": "${{set_as_default:N}}"
     - sh: sdk use java ${{java_version}}

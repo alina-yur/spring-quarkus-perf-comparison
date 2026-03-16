@@ -5,7 +5,7 @@ states:
   env.run.host.target: ${{env.run.host.user}}@${{env.run.host.name}}
 
   config.jvm.version: 25.0.2-tem
-  config.jvm.graalvm.version: 25.0.2-graalce
+  config.jvm.graalvm.version: 25.0.2-graal
 
   config.quarkus.version: #3.28.3
   config.springboot3.version: #3.5.6
@@ -43,7 +43,7 @@ states:
   PROFILER_JVM_ARGS:
   BASE_JAVA_CMD: ${{APP_CMD_PREFIX}} java ${{config.jvm.memory}} ${{config.jvm.args}} ${{PROFILER_JVM_ARGS}}
   TESTS : [test-build, measure-build-times, measure-time-to-first-request, measure-rss, run-load-test]
-  RUNTIMES: [quarkus3-jvm, quarkus3-virtual, quarkus3-native, spring3-jvm, spring3-virtual, spring3-jvm-aot, spring3-native, spring4-jvm, spring4-virtual, spring4-jvm-aot, spring4-native]
+  RUNTIMES: [quarkus3-jvm, quarkus3-virtual, quarkus3-native, quarkus3-native-g1, quarkus3-native-pgo, quarkus3-native-pgo-g1, spring3-jvm, spring3-virtual, spring3-jvm-aot, spring3-native, spring3-native-g1, spring3-native-pgo, spring3-native-pgo-g1, spring4-jvm, spring4-virtual, spring4-jvm-aot, spring4-native, spring4-native-g1, spring4-native-pgo, spring4-native-pgo-g1]
   TARGET_URL: http://localhost:8080/fruits
   QUARKUS-PLATFORM-ARTIFACT-ID: quarkus-bom
   PROJ_REPO_NAME: spring-quarkus-perf-comparison
@@ -72,6 +72,32 @@ states:
       updateScript: update-quarkus-version
       updateVersion: ${{config.quarkus.version}}
       buildCmd: "./mvnw ${{config.quarkus.build_config_args}} clean package -DskipTests -Pnative ${{config.quarkus.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{QUARKUS3_DIR}}/target/quarkus3-runner ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*quarkus3.+started in.*"
+    - name: quarkus3-native-g1
+      type: native
+      dir: ${{QUARKUS3_DIR}}
+      updateScript: update-quarkus-version
+      updateVersion: ${{config.quarkus.version}}
+      buildCmd: "./mvnw ${{config.quarkus.build_config_args}} clean package -DskipTests -Pnative -Pg1 ${{config.quarkus.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{QUARKUS3_DIR}}/target/quarkus3-runner ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*quarkus3.+started in.*"
+    - name: quarkus3-native-pgo
+      type: native
+      dir: ${{QUARKUS3_DIR}}
+      updateScript: update-quarkus-version
+      updateVersion: ${{config.quarkus.version}}
+      buildCmd: "./mvnw ${{config.quarkus.build_config_args}} clean package -DskipTests -Pnative -Ppgo ${{config.quarkus.native_build_options}}"
+      pgoProfileBuildCmd: "./mvnw ${{config.quarkus.build_config_args}} clean package -DskipTests -Pnative -Pinstrumented ${{config.quarkus.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{QUARKUS3_DIR}}/target/quarkus3-runner ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*quarkus3.+started in.*"
+    - name: quarkus3-native-pgo-g1
+      type: native
+      dir: ${{QUARKUS3_DIR}}
+      updateScript: update-quarkus-version
+      updateVersion: ${{config.quarkus.version}}
+      buildCmd: "./mvnw ${{config.quarkus.build_config_args}} clean package -DskipTests -Pnative -Ppgo-g1 ${{config.quarkus.native_build_options}}"
+      pgoProfileBuildCmd: "./mvnw ${{config.quarkus.build_config_args}} clean package -DskipTests -Pnative -Pinstrumented ${{config.quarkus.native_build_options}}"
       runCmd: "${{APP_CMD_PREFIX}} ${{QUARKUS3_DIR}}/target/quarkus3-runner ${{config.jvm.memory}}"
       logFileStartedRegex: ".*quarkus3.+started in.*"
     - name: spring3-jvm
@@ -106,6 +132,32 @@ states:
       buildCmd: "./mvnw clean -Pnative -DskipTests native:compile package ${{config.springboot3.native_build_options}}"
       runCmd: "${{APP_CMD_PREFIX}} ${{SPRING3_BOOT_DIR}}/target/springboot3 ${{config.jvm.memory}}"
       logFileStartedRegex: ".*Started SpringBoot3Application in.+seconds.*"
+    - name: spring3-native-g1
+      type: native
+      dir: ${{SPRING3_BOOT_DIR}}
+      updateScript: update-spring-boot-version
+      updateVersion: ${{config.springboot3.version}}
+      buildCmd: "./mvnw clean -Pnative -Pg1 -DskipTests native:compile package ${{config.springboot3.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{SPRING3_BOOT_DIR}}/target/springboot3 ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*Started SpringBoot3Application in.+seconds.*"
+    - name: spring3-native-pgo
+      type: native
+      dir: ${{SPRING3_BOOT_DIR}}
+      updateScript: update-spring-boot-version
+      updateVersion: ${{config.springboot3.version}}
+      buildCmd: "./mvnw clean -Pnative -Ppgo -DskipTests native:compile package ${{config.springboot3.native_build_options}}"
+      pgoProfileBuildCmd: "./mvnw clean -Pnative -Pinstrumented -DskipTests native:compile package ${{config.springboot3.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{SPRING3_BOOT_DIR}}/target/springboot3 ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*Started SpringBoot3Application in.+seconds.*"
+    - name: spring3-native-pgo-g1
+      type: native
+      dir: ${{SPRING3_BOOT_DIR}}
+      updateScript: update-spring-boot-version
+      updateVersion: ${{config.springboot3.version}}
+      buildCmd: "./mvnw clean -Pnative -Ppgo-g1 -DskipTests native:compile package ${{config.springboot3.native_build_options}}"
+      pgoProfileBuildCmd: "./mvnw clean -Pnative -Pinstrumented -DskipTests native:compile package ${{config.springboot3.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{SPRING3_BOOT_DIR}}/target/springboot3 ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*Started SpringBoot3Application in.+seconds.*"
     - name: spring4-jvm
       type: jvm
       dir: ${{SPRING4_BOOT_DIR}}
@@ -138,6 +190,32 @@ states:
       buildCmd: "./mvnw clean -Pnative -DskipTests native:compile package ${{config.springboot4.native_build_options}}"
       runCmd: "${{APP_CMD_PREFIX}} ${{SPRING4_BOOT_DIR}}/target/springboot4 ${{config.jvm.memory}}"
       logFileStartedRegex: ".*Started SpringBoot4Application in.+seconds.*"
+    - name: spring4-native-g1
+      type: native
+      dir: ${{SPRING4_BOOT_DIR}}
+      updateScript: update-spring-boot-version
+      updateVersion: ${{config.springboot4.version}}
+      buildCmd: "./mvnw clean -Pnative -Pg1 -DskipTests native:compile package ${{config.springboot4.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{SPRING4_BOOT_DIR}}/target/springboot4 ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*Started SpringBoot4Application in.+seconds.*"
+    - name: spring4-native-pgo
+      type: native
+      dir: ${{SPRING4_BOOT_DIR}}
+      updateScript: update-spring-boot-version
+      updateVersion: ${{config.springboot4.version}}
+      buildCmd: "./mvnw clean -Pnative -Ppgo -DskipTests native:compile package ${{config.springboot4.native_build_options}}"
+      pgoProfileBuildCmd: "./mvnw clean -Pnative -Pinstrumented -DskipTests native:compile package ${{config.springboot4.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{SPRING4_BOOT_DIR}}/target/springboot4 ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*Started SpringBoot4Application in.+seconds.*"
+    - name: spring4-native-pgo-g1
+      type: native
+      dir: ${{SPRING4_BOOT_DIR}}
+      updateScript: update-spring-boot-version
+      updateVersion: ${{config.springboot4.version}}
+      buildCmd: "./mvnw clean -Pnative -Ppgo-g1 -DskipTests native:compile package ${{config.springboot4.native_build_options}}"
+      pgoProfileBuildCmd: "./mvnw clean -Pnative -Pinstrumented -DskipTests native:compile package ${{config.springboot4.native_build_options}}"
+      runCmd: "${{APP_CMD_PREFIX}} ${{SPRING4_BOOT_DIR}}/target/springboot4 ${{config.jvm.memory}}"
+      logFileStartedRegex: ".*Started SpringBoot4Application in.+seconds.*"
 
 scripts:
   update-state:
@@ -167,6 +245,10 @@ scripts:
         "RUNTIMECMDS: ${{RUNTIMECMDS}}"
 
   capture-repo-info:
+    - script: trace-progress
+      with:
+        scope: setup
+        phase: capture-repo-info-start
     - sh: cd ${{PROJ_REPO_DIR}}
     - sh: git rev-parse HEAD
     - set-state: RUN.config.repo.commit
@@ -189,30 +271,72 @@ scripts:
                 - set-state:
                     key: RUN.config.repo.scenarioName
                     value: ${{config.repo.scenario}}
+    - script: trace-progress
+      with:
+        scope: setup
+        phase: capture-repo-info-complete
+        detail: commit=${{RUN.config.repo.short_commit}} scenario=${{RUN.config.repo.scenarioName}}
 
   cleanup-env:
+    - script: trace-progress
+      with:
+        scope: environment
+        phase: cleanup-start
+        detail: path=${{PROJ_REPO_DIR}}
     - script: sudo
       with:
         command: rm -Rf ${{PROJ_REPO_DIR}}
+    - script: trace-progress
+      with:
+        scope: environment
+        phase: cleanup-complete
+        detail: path=${{PROJ_REPO_DIR}}
 
   config-env:
+    - script: trace-progress
+      with:
+        scope: environment
+        phase: config-start
+        detail: logs=${{REPO_DIR}}/logs
     - script: sudo
       with:
         command: rm -Rf ${{REPO_DIR}}/logs
     - sh: mkdir -p ${{REPO_DIR}}/logs
+    - script: trace-progress
+      with:
+        scope: environment
+        phase: config-complete
+        detail: logs=${{REPO_DIR}}/logs
 
   clone-repo:
+    - script: trace-progress
+      with:
+        scope: setup
+        phase: clone-start
+        detail: branch=${{config.repo.branch}} repo=${{config.repo.url}}
     - script: sudo
       with:
         command: rm -Rf ${{REPO_DIR}}
     - sh: mkdir -p ${{REPO_DIR}}/logs
     - sh: cd ${{REPO_DIR}}
     - log: Cloning project repo ${{config.repo.branch}}@${{config.repo.url}}
-    - sh: git clone -b ${{config.repo.branch}} ${{config.repo.url}}
+    - sh: |
+        REPO_URL="${{config.repo.url}}"
+        if [[ "$REPO_URL" =~ ^file:// ]]; then
+          SRC_PATH="${REPO_URL#file://}"
+          cp -a "$SRC_PATH" "${{PROJ_REPO_NAME}}"
+        else
+          git clone -b ${{config.repo.branch}} "$REPO_URL"
+        fi
     - sh: cd ${{PROJ_REPO_NAME}}
     - log: Checked out repo
-    - sh: git remote get-url origin
-    - sh: git branch --show-current
+    - sh: git remote get-url origin || true
+    - sh: git branch --show-current || true
+    - script: trace-progress
+      with:
+        scope: setup
+        phase: clone-complete
+        detail: repo=${{PROJ_REPO_DIR}}
 
   update-spring-boot-version:
     - script: check-dependency-exists
@@ -231,39 +355,267 @@ scripts:
     - sh: ./mvnw versions:set-property -Dproperty=quarkus.platform.version -DnewVersion=${{VERSION}}
 
   start-test-services:
+    - script: trace-progress
+      with:
+        scope: infra
+        phase: start
+        runtime: ${{runtime:}}
+        test: ${{test:}}
+        iteration: ${{iteration:}}
+        detail: cpu-db=${{config.resources.cpu.db}}
     - sh: ${{PROJ_REPO_DIR}}/scripts/infra.sh -c 3 -p '${{config.resources.cpu.db}}' -s
       watch:
         - regex: "Error: PostgreSQL failed to become ready"
           then:
             - abort: PostgreSQL failed to become ready
+    - script: trace-progress
+      with:
+        scope: infra
+        phase: ready
+        runtime: ${{runtime:}}
+        test: ${{test:}}
+        iteration: ${{iteration:}}
+        detail: postgres-ready
 
   stop-test-services:
+    - script: trace-progress
+      with:
+        scope: infra
+        phase: stop
+        runtime: ${{runtime:}}
+        test: ${{test:}}
+        iteration: ${{iteration:}}
     - sh: ${{PROJ_REPO_DIR}}/scripts/infra.sh -d
+    - script: trace-progress
+      with:
+        scope: infra
+        phase: stopped
+        runtime: ${{runtime:}}
+        test: ${{test:}}
+        iteration: ${{iteration:}}
 
   run-tests:
+    - script: trace-progress
+      with:
+        scope: run
+        phase: run-tests-start
+        detail: runtimes=${{RUNTIMES}} tests=${{TESTS}} iterations=${{config.num_iterations}}
     - sh: java -version
     - sh: echo $$
     - set-state: RUN.SHELL_PID
+    - script: trace-progress
+      with:
+        scope: run
+        phase: shell-ready
+        detail: shell_pid=${{RUN.SHELL_PID}}
     - for-each: RUNTIME ${{RUNTIMES}}
       then:
         - set-state: RUNTIMECMD ${{RUNTIMECMDS[?(@.name == '${{RUNTIME}}')]}}
-        - log: "Updating version: ${{RUNTIMECMD.updateVersion:}}"
-        - script: ${{RUNTIMECMD.updateScript:abort-script-not-found}}
+        - script: trace-progress
           with:
-            DIR: ${{RUNTIMECMD.dir}}
-            VERSION: ${{RUNTIMECMD.updateVersion:}}
+            scope: runtime
+            phase: start
+            runtime: ${{RUNTIMECMD.name}}
+            detail: type=${{RUNTIMECMD.type}} dir=${{RUNTIMECMD.dir}}
+        - set-state: RUNTIME_UPDATE_VERSION ${{RUNTIMECMD.updateVersion:}}
+        - read-state: ${{RUNTIME_UPDATE_VERSION}}
+          then:
+            - regex: ^$
+              then:
+                - log: "Skipping version update for ${{RUNTIMECMD.name}} (using pom defaults)"
+                - script: trace-progress
+                  with:
+                    scope: runtime
+                    phase: version-update-skipped
+                    runtime: ${{RUNTIMECMD.name}}
+                    detail: using-pom-defaults
+              else:
+                - log: "Updating version: ${{RUNTIME_UPDATE_VERSION}}"
+                - script: trace-progress
+                  with:
+                    scope: runtime
+                    phase: version-update-start
+                    runtime: ${{RUNTIMECMD.name}}
+                    detail: version=${{RUNTIME_UPDATE_VERSION}}
+                - script: ${{RUNTIMECMD.updateScript:abort-script-not-found}}
+                  with:
+                    DIR: ${{RUNTIMECMD.dir}}
+                    VERSION: ${{RUNTIME_UPDATE_VERSION}}
+                - script: trace-progress
+                  with:
+                    scope: runtime
+                    phase: version-update-complete
+                    runtime: ${{RUNTIMECMD.name}}
+                    detail: version=${{RUNTIME_UPDATE_VERSION}}
+        - script: prepare-pgo-profile
+          with:
+            RUNTIME: ${{RUNTIMECMD}}
         - log: "Testing: ${{RUNTIME}}"
         - for-each: TEST ${{TESTS}}
           then:
           - script: ${{TEST}}
             with:
               RUNTIME: ${{RUNTIMECMD}}
+        - script: trace-progress
+          with:
+            scope: runtime
+            phase: complete
+            runtime: ${{RUNTIMECMD.name}}
+    - script: trace-progress
+      with:
+        scope: run
+        phase: run-tests-complete
+
+  prepare-pgo-profile:
+    - read-state: ${{RUNTIME.pgoProfileBuildCmd:}}
+      then:
+        - regex: ^$
+          then:
+            - log: "Skipping PGO profile preparation for ${{RUNTIME.name}}"
+            - script: trace-progress
+              with:
+                scope: pgo
+                phase: skipped
+                runtime: ${{RUNTIME.name}}
+          else:
+            - log: "Preparing PGO profile for ${{RUNTIME.name}}"
+            - script: trace-progress
+              with:
+                scope: pgo
+                phase: start
+                runtime: ${{RUNTIME.name}}
+            - sh: cd ${{RUNTIME.dir}}
+            - sh: rm -f ${{RUNTIME.dir}}/default.iprof
+            - sh: rm -f ${{RUNTIME.dir}}/target/default.iprof
+            - sh: rm -f ${{REPO_DIR}}/default.iprof
+            - queue-download: ${{REPO_DIR}}/logs/pgo-profile-${{RUNTIME.name}}.log
+            - queue-download: ${{REPO_DIR}}/logs/wrk-pgo-profile-${{RUNTIME.name}}.log
+            - script: trace-progress
+              with:
+                scope: pgo
+                phase: instrumented-build-start
+                runtime: ${{RUNTIME.name}}
+            - sh: ${{RUNTIME.pgoProfileBuildCmd}}
+            - script: trace-progress
+              with:
+                scope: pgo
+                phase: instrumented-build-complete
+                runtime: ${{RUNTIME.name}}
+            - script: start-test-services
+              with:
+                runtime: ${{RUNTIME.name}}
+                test: prepare-pgo-profile
+            - sh: bash -lc 'cd "${{RUNTIME.dir}}" && exec ${{RUNTIME.runCmd}} -XX:ProfilesDumpFile=${{RUNTIME.dir}}/default.iprof' &>${{REPO_DIR}}/logs/pgo-profile-${{RUNTIME.name}}.log &
+            - sh: APP_PID=$!
+            - script: trace-progress
+              with:
+                scope: pgo
+                phase: app-started
+                runtime: ${{RUNTIME.name}}
+                test: prepare-pgo-profile
+                detail: log=${{REPO_DIR}}/logs/pgo-profile-${{RUNTIME.name}}.log cwd=${{RUNTIME.dir}} dump=${{RUNTIME.dir}}/default.iprof expected_profile=${{RUNTIME.dir}}/default.iprof
+            - script: trace-progress
+              with:
+                scope: pgo
+                phase: waiting-for-http-200
+                runtime: ${{RUNTIME.name}}
+                test: prepare-pgo-profile
+                detail: url=${{TARGET_URL}}
+            - sh: timeout 60s bash -c "until curl -sf ${{TARGET_URL}} >/dev/null; do sleep 2; done"
+              then:
+                - regex: Terminated
+                  then:
+                    - script: trace-progress
+                      with:
+                        scope: pgo
+                        phase: startup-timeout
+                        runtime: ${{RUNTIME.name}}
+                        test: prepare-pgo-profile
+                    - sh: kill -15 $APP_PID || true
+                    - script: stop-test-services
+                      with:
+                        runtime: ${{RUNTIME.name}}
+                        test: prepare-pgo-profile
+                    - abort: Instrumented runtime ${{RUNTIME.name}} didn't start within allotted timeout
+            - script: trace-progress
+              with:
+                scope: pgo
+                phase: app-ready
+                runtime: ${{RUNTIME.name}}
+                test: prepare-pgo-profile
+            - script: trace-progress
+              with:
+                scope: pgo
+                phase: workload-start
+                runtime: ${{RUNTIME.name}}
+            - sh: ${{RUN.WRK_BIN}} -t 2 -c 100 -d 30s --timeout 2m ${{TARGET_URL}} 2>&1 >${{REPO_DIR}}/logs/wrk-pgo-profile-${{RUNTIME.name}}.log
+              then:
+                - regex: unable to connect
+                  then:
+                    - script: trace-progress
+                      with:
+                        scope: pgo
+                        phase: workload-connect-failed
+                        runtime: ${{RUNTIME.name}}
+                    - sh: kill -15 $APP_PID || true
+                    - script: stop-test-services
+                      with:
+                        runtime: ${{RUNTIME.name}}
+                        test: prepare-pgo-profile
+                    - abort: unable to connect to instrumented target application
+            - script: trace-progress
+              with:
+                scope: pgo
+                phase: workload-complete
+                runtime: ${{RUNTIME.name}}
+            - sh: kill -2 $APP_PID || true
+            - sh: wait $APP_PID || true
+            - sleep: 5s
+            - script: trace-progress
+              with:
+                scope: pgo
+                phase: profile-discovery
+                runtime: ${{RUNTIME.name}}
+                detail: path=${{RUNTIME.dir}}/default.iprof
+            - sh: bash -lc 'for candidate in "${{RUNTIME.dir}}/default.iprof" "${{RUNTIME.dir}}/target/default.iprof" "${{REPO_DIR}}/default.iprof"; do if [ -f "$candidate" ]; then printf "%s\n" "$candidate"; exit 0; fi; done; echo "Missing PGO profile for ${{RUNTIME.name}}"'
+              then:
+                - regex: Missing PGO profile for .*
+                  then:
+                    - script: stop-test-services
+                      with:
+                        runtime: ${{RUNTIME.name}}
+                        test: prepare-pgo-profile
+                    - abort: Instrumented runtime ${{RUNTIME.name}} did not produce default.iprof
+                  else:
+                    - set-state: PGO_PROFILE_PATH
+            - script: trace-progress
+              with:
+                scope: pgo
+                phase: profile-found
+                runtime: ${{RUNTIME.name}}
+                detail: found=${{PGO_PROFILE_PATH}}
+            - sh: bash -lc 'if [ "${{PGO_PROFILE_PATH}}" != "${{RUNTIME.dir}}/default.iprof" ]; then cp "${{PGO_PROFILE_PATH}}" "${{RUNTIME.dir}}/default.iprof"; fi; ls -lh "${{RUNTIME.dir}}/default.iprof"'
+            - script: stop-test-services
+              with:
+                runtime: ${{RUNTIME.name}}
+                test: prepare-pgo-profile
+            - script: trace-progress
+              with:
+                scope: pgo
+                phase: complete
+                runtime: ${{RUNTIME.name}}
 
   abort-script-not-found:
     - abort: script not found
 
   test-build:
     - log: Test Build - ${{RUNTIME.name}}
+    - script: trace-progress
+      with:
+        scope: test
+        phase: build-start
+        runtime: ${{RUNTIME.name}}
+        test: test-build
     - sh: cd ${{RUNTIME.dir}}
     - sh: java -version
     - sh: ${{RUNTIME.buildCmd}}
@@ -271,9 +623,21 @@ scripts:
       - regex: BUILD FAILURE
         then:
           - abort: failed to build ${{RUNTIME.name}}
+    - script: trace-progress
+      with:
+        scope: test
+        phase: build-complete
+        runtime: ${{RUNTIME.name}}
+        test: test-build
 
   measure-build-times:
     - log: Build times
+    - script: trace-progress
+      with:
+        scope: test
+        phase: start
+        runtime: ${{RUNTIME.name}}
+        test: measure-build-times
     - sh: cd ${{RUNTIME.dir}}
     - log: JVM version
     - sh: java -version
@@ -282,10 +646,33 @@ scripts:
     - set-state: TYPE ${{RUNTIME.type}}
     - for-each: ITERATION ${{=[...Array(${{config.num_iterations}}).keys()]}}
       then:
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: start
+            runtime: ${{RUNTIME.name}}
+            test: measure-build-times
+            iteration: ${{ITERATION}}
         - queue-download: ${{REPO_DIR}}/logs/build-times-${{RUNTIME.name}}-${{ITERATION}}.log
         - script: sync-drop-fs-cache
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: build-start
+            runtime: ${{RUNTIME.name}}
+            test: measure-build-times
+            iteration: ${{ITERATION}}
+            detail: log=${{REPO_DIR}}/logs/build-times-${{RUNTIME.name}}-${{ITERATION}}.log
         - sh: /usr/bin/time -p ${{RUNTIME.buildCmd}} 2>&1 >${{REPO_DIR}}/logs/build-times-${{RUNTIME.name}}-${{ITERATION}}.log | grep real | awk '{print $2}'
         - set-state: BUILD_TIME
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: build-complete
+            runtime: ${{RUNTIME.name}}
+            test: measure-build-times
+            iteration: ${{ITERATION}}
+            detail: seconds=${{BUILD_TIME}}
         - script: state-array-push
           with:
             array: RUN.output.results.${{RUNTIME.name}}.build.timings
@@ -302,6 +689,13 @@ scripts:
                   with:
                     array: RUN.output.results.${{RUNTIME.name}}.build.native.rss
                     value: ${{NATIVE_BUILD_RSS}}
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: complete
+            runtime: ${{RUNTIME.name}}
+            test: measure-build-times
+            iteration: ${{ITERATION}}
     - script: state-array-calc-avg
       with:
         var-name: RUN.output.results.${{RUNTIME.name}}.build.avBuildTime
@@ -345,31 +739,104 @@ scripts:
             # Capture the number of methods registered for reflection
             - sh: "cat ${{REPO_DIR}}/logs/build-times-${{RUNTIME.name}}-0.log | grep \"types.*fields.*methods registered for reflection\" | awk '{print $6}'"
             - set-state: RUN.output.results.${{RUNTIME.name}}.build.reflectionMethodCount
+    - script: trace-progress
+      with:
+        scope: test
+        phase: complete
+        runtime: ${{RUNTIME.name}}
+        test: measure-build-times
 
   measure-time-to-first-request:
     - log: Measuring Time to first request
+    - script: trace-progress
+      with:
+        scope: test
+        phase: start
+        runtime: ${{RUNTIME.name}}
+        test: measure-time-to-first-request
     - sh: java -version
     - sh: cd ${{RUNTIME.dir}}
+    - script: trace-progress
+      with:
+        scope: test
+        phase: build-start
+        runtime: ${{RUNTIME.name}}
+        test: measure-time-to-first-request
     - sh: ${{RUNTIME.buildCmd}}
+    - script: trace-progress
+      with:
+        scope: test
+        phase: build-complete
+        runtime: ${{RUNTIME.name}}
+        test: measure-time-to-first-request
     - for-each: ITERATION ${{=[...Array(${{config.num_iterations}}).keys()]}}
       then:
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: start
+            runtime: ${{RUNTIME.name}}
+            test: measure-time-to-first-request
+            iteration: ${{ITERATION}}
         - queue-download: ${{REPO_DIR}}/logs/measure-time-to-first-request-${{RUNTIME.name}}-${{ITERATION}}.log
         - script: start-test-services
+          with:
+            runtime: ${{RUNTIME.name}}
+            test: measure-time-to-first-request
+            iteration: ${{ITERATION}}
         - script: sync-drop-fs-cache
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: app-launch-start
+            runtime: ${{RUNTIME.name}}
+            test: measure-time-to-first-request
+            iteration: ${{ITERATION}}
+            detail: log=${{REPO_DIR}}/logs/measure-time-to-first-request-${{RUNTIME.name}}-${{ITERATION}}.log
         - sh: ${{RUNTIME.runCmd}} &>${{REPO_DIR}}/logs/measure-time-to-first-request-${{RUNTIME.name}}-${{ITERATION}}.log &
         - sh: APP_PID=$!
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: waiting-for-first-request
+            runtime: ${{RUNTIME.name}}
+            test: measure-time-to-first-request
+            iteration: ${{ITERATION}}
+            detail: url=${{TARGET_URL}}
         - sh: timeout 60s bash -c "taskset --cpu-list ${{config.resources.cpu.1st_request}} ${{HELPER_SCRIPTS_DIR}}/time-to-1st-request.sh ${{TARGET_URL}}"
           then:
             - regex: Terminated
               then:
+                - script: trace-progress
+                  with:
+                    scope: iteration
+                    phase: timeout
+                    runtime: ${{RUNTIME.name}}
+                    test: measure-time-to-first-request
+                    iteration: ${{ITERATION}}
                 - sh: kill -15 $APP_PID
                 - abort: Run ${{RUNTIME.runCmd}} didn't start within allotted timeout
             - regex: .*\D.*
               then:
+                - script: trace-progress
+                  with:
+                    scope: iteration
+                    phase: invalid-output
+                    runtime: ${{RUNTIME.name}}
+                    test: measure-time-to-first-request
+                    iteration: ${{ITERATION}}
                 - sh: kill -15 $APP_PID
                 - abort: Timeout script returned a non-numeric value
               else:
                 - set-state: START_TIME
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: first-request-ready
+            runtime: ${{RUNTIME.name}}
+            test: measure-time-to-first-request
+            iteration: ${{ITERATION}}
+            detail: ttfr_ms=${{START_TIME}}
         - sh: kill -15 $APP_PID
         - script: state-array-push
           with:
@@ -377,24 +844,85 @@ scripts:
             value: ${{START_TIME}}
         - sh: sleep ${{PAUSE_TIME}}
         - script: stop-test-services
+          with:
+            runtime: ${{RUNTIME.name}}
+            test: measure-time-to-first-request
+            iteration: ${{ITERATION}}
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: complete
+            runtime: ${{RUNTIME.name}}
+            test: measure-time-to-first-request
+            iteration: ${{ITERATION}}
     - script: state-array-calc-avg
       with:
         var-name: RUN.output.results.${{RUNTIME.name}}.startup.avStartTime
         array: RUN.output.results.${{RUNTIME.name}}.startup.timings
+    - script: trace-progress
+      with:
+        scope: test
+        phase: complete
+        runtime: ${{RUNTIME.name}}
+        test: measure-time-to-first-request
 
   measure-rss:
     - log: Measuring RSS
+    - script: trace-progress
+      with:
+        scope: test
+        phase: start
+        runtime: ${{RUNTIME.name}}
+        test: measure-rss
     - sh: java -version
     - sh: cd ${{RUNTIME.dir}}
+    - script: trace-progress
+      with:
+        scope: test
+        phase: build-start
+        runtime: ${{RUNTIME.name}}
+        test: measure-rss
     - sh: ${{RUNTIME.buildCmd}}
+    - script: trace-progress
+      with:
+        scope: test
+        phase: build-complete
+        runtime: ${{RUNTIME.name}}
+        test: measure-rss
     - for-each: ITERATION ${{=[...Array(${{config.num_iterations}}).keys()]}}
       then:
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: start
+            runtime: ${{RUNTIME.name}}
+            test: measure-rss
+            iteration: ${{ITERATION}}
         - queue-download: ${{REPO_DIR}}/logs/measure-rss-${{RUNTIME.name}}-${{ITERATION}}.log
         - script: start-test-services
+          with:
+            runtime: ${{RUNTIME.name}}
+            test: measure-rss
+            iteration: ${{ITERATION}}
         - script: sync-drop-fs-cache
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: app-launch-start
+            runtime: ${{RUNTIME.name}}
+            test: measure-rss
+            iteration: ${{ITERATION}}
+            detail: log=${{REPO_DIR}}/logs/measure-rss-${{RUNTIME.name}}-${{ITERATION}}.log
         - sh: ${{RUNTIME.runCmd}} &>${{REPO_DIR}}/logs/measure-rss-${{RUNTIME.name}}-${{ITERATION}}.log &
         - sh: APP_PID=$!
         - sh: sleep ${{PAUSE_TIME}}
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: sampling-startup-rss
+            runtime: ${{RUNTIME.name}}
+            test: measure-rss
+            iteration: ${{ITERATION}}
         - sh: pmap -x $APP_PID | grep total | awk '{print $4}'
           then:
             - set-state: RSS_STARTUP
@@ -403,6 +931,13 @@ scripts:
             array: RUN.output.results.${{RUNTIME.name}}.rss.startup
             value: ${{= ${{RSS_STARTUP}}/1024 }}
         - sh: curl -s  ${{TARGET_URL}} > /dev/null
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: sampling-post-request-rss
+            runtime: ${{RUNTIME.name}}
+            test: measure-rss
+            iteration: ${{ITERATION}}
         - sh: pmap -x $APP_PID | grep total | awk '{print $4}'
           then:
             - set-state: FIRST_REQUEST
@@ -413,6 +948,18 @@ scripts:
         - sh: kill -15 $APP_PID
         - sh: sleep ${{PAUSE_TIME}}
         - script: stop-test-services
+          with:
+            runtime: ${{RUNTIME.name}}
+            test: measure-rss
+            iteration: ${{ITERATION}}
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: complete
+            runtime: ${{RUNTIME.name}}
+            test: measure-rss
+            iteration: ${{ITERATION}}
+            detail: rss_startup_kb=${{RSS_STARTUP}} rss_after_request_kb=${{FIRST_REQUEST}}
     - script: state-array-calc-avg
       with:
         var-name: RUN.output.results.${{RUNTIME.name}}.rss.avStartupRss
@@ -421,16 +968,47 @@ scripts:
       with:
         var-name: RUN.output.results.${{RUNTIME.name}}.rss.avFirstRequestRss
         array: RUN.output.results.${{RUNTIME.name}}.rss.firstRequest
+    - script: trace-progress
+      with:
+        scope: test
+        phase: complete
+        runtime: ${{RUNTIME.name}}
+        test: measure-rss
 
   run-load-test:
     - log: Running workload
+    - script: trace-progress
+      with:
+        scope: test
+        phase: start
+        runtime: ${{RUNTIME.name}}
+        test: run-load-test
     - sh: cd ${{RUNTIME.dir}}
+    - script: trace-progress
+      with:
+        scope: test
+        phase: build-start
+        runtime: ${{RUNTIME.name}}
+        test: run-load-test
     - sh: ${{RUNTIME.buildCmd}}
+    - script: trace-progress
+      with:
+        scope: test
+        phase: build-complete
+        runtime: ${{RUNTIME.name}}
+        test: run-load-test
     - set-state:
         key: APP_LOG_REGEX
         value: ${{RUNTIME.logFileStartedRegex}}
     - for-each: ITERATION ${{=[...Array(${{config.num_iterations}}).keys()]}}
       then:
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: start
+            runtime: ${{RUNTIME.name}}
+            test: run-load-test
+            iteration: ${{ITERATION}}
         - set-state:
             key: LOG_FILE
             value: ${{REPO_DIR}}/logs/load-test-${{RUNTIME.name}}-${{ITERATION}}.log
@@ -439,19 +1017,40 @@ scripts:
         - queue-download: ${{LOG_FILE}}
         - queue-download: ${{REPO_DIR}}/logs/wrk-${{RUNTIME.name}}-${{ITERATION}}.log
         - script: start-test-services
+          with:
+            runtime: ${{RUNTIME.name}}
+            test: run-load-test
+            iteration: ${{ITERATION}}
         - script: sync-drop-fs-cache
         - set-signal: LOAD_STEADY_STATE_START 1
         - set-signal: LOG_REGEX_REACHED 1
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: app-launch-start
+            runtime: ${{RUNTIME.name}}
+            test: run-load-test
+            iteration: ${{ITERATION}}
+            detail: log=${{LOG_FILE}} regex=${{APP_LOG_REGEX}}
         - sh: ${{RUNTIME.runCmd}} &>${{LOG_FILE}} &
         - sh: PID=$!
         - sh: echo $PID
         - set-state: JVM_PID
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: app-started
+            runtime: ${{RUNTIME.name}}
+            test: run-load-test
+            iteration: ${{ITERATION}}
+            detail: pid=${{JVM_PID}}
         - script: monitor-processes
           with:
             pid: ${{JVM_PID}}
             log_dir: ${{REPO_DIR}}/logs
             runtime_name: ${{RUNTIME.name}}
             iteration: ${{ITERATION}}
+            test: run-load-test
         - log: JVM_PID = ${{JVM_PID}}
         - read-state: ${{config.profiler.name}}
           then:
@@ -475,13 +1074,51 @@ scripts:
           with:
             log_file: ${{LOG_FILE}}
             log_regex: ${{APP_LOG_REGEX}}
+            runtime_name: ${{RUNTIME.name}}
+            test: run-load-test
+            iteration: ${{ITERATION}}
         - wait-for: LOG_REGEX_REACHED
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: app-ready
+            runtime: ${{RUNTIME.name}}
+            test: run-load-test
+            iteration: ${{ITERATION}}
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: warmup-start
+            runtime: ${{RUNTIME.name}}
+            test: run-load-test
+            iteration: ${{ITERATION}}
         - sh: ${{RUN.WRK_BIN}} -t 2 -c 100 -d 2m --timeout 2m ${{TARGET_URL}} 2>&1 >${{REPO_DIR}}/logs/wrk-warmup-${{RUNTIME.name}}-${{ITERATION}}.log
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: warmup-complete
+            runtime: ${{RUNTIME.name}}
+            test: run-load-test
+            iteration: ${{ITERATION}}
         - regex: unable to connect
           then:
             - abort: unable to connect to target application
         - sleep: 30s # Wait for the app to complete warmup
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: steady-state-start
+            runtime: ${{RUNTIME.name}}
+            test: run-load-test
+            iteration: ${{ITERATION}}
         - signal: LOAD_STEADY_STATE_START
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: load-start
+            runtime: ${{RUNTIME.name}}
+            test: run-load-test
+            iteration: ${{ITERATION}}
         - sh: ${{RUN.WRK_BIN}} -t 2 -c 100 -d 30s --timeout 30s ${{TARGET_URL}} 2>&1 >${{REPO_DIR}}/logs/wrk-${{RUNTIME.name}}-${{ITERATION}}.log
         - sh: cat ${{REPO_DIR}}/logs/wrk-${{RUNTIME.name}}-${{ITERATION}}.log | grep "Requests/sec" | awk '{print $2}'
           then:
@@ -529,6 +1166,18 @@ scripts:
         - sh: kill -15 $PID
         - sh: sleep ${{PAUSE_TIME}}
         - script: stop-test-services
+          with:
+            runtime: ${{RUNTIME.name}}
+            test: run-load-test
+            iteration: ${{ITERATION}}
+        - script: trace-progress
+          with:
+            scope: iteration
+            phase: complete
+            runtime: ${{RUNTIME.name}}
+            test: run-load-test
+            iteration: ${{ITERATION}}
+            detail: throughput=${{THROUGHPUT}} rss_kb=${{RSS}} connection_errors=${{CONNECTION_ERRORS}} request_timeouts=${{REQUEST_TIMEOUTS}}
     - script: state-array-calc-avg
       with:
         var-name: RUN.output.results.${{RUNTIME.name}}.load.avThroughput
@@ -549,20 +1198,58 @@ scripts:
       with:
         var-name: RUN.output.results.${{RUNTIME.name}}.load.avRequestTimeouts
         array: RUN.output.results.${{RUNTIME.name}}.load.requestTimeouts
+    - script: trace-progress
+      with:
+        scope: test
+        phase: complete
+        runtime: ${{RUNTIME.name}}
+        test: run-load-test
 
   watch-log:
+    - script: trace-progress
+      with:
+        scope: app-readiness
+        phase: start
+        runtime: ${{runtime_name:}}
+        test: ${{test:}}
+        iteration: ${{iteration:}}
+        detail: log=${{log_file}} regex=${{log_regex}}
     - sh: tail -f ${{log_file}}
       watch:
         - regex: "${{log_regex}}"
           then:
+            - script: trace-progress
+              with:
+                scope: app-readiness
+                phase: matched
+                runtime: ${{runtime_name:}}
+                test: ${{test:}}
+                iteration: ${{iteration:}}
+                detail: log=${{log_file}}
             - ctrlC
             - signal: LOG_REGEX_REACHED
       timer:
         1m:
+          - script: trace-progress
+            with:
+              scope: app-readiness
+              phase: timeout
+              runtime: ${{runtime_name:}}
+              test: ${{test:}}
+              iteration: ${{iteration:}}
+              detail: log=${{log_file}} regex=${{log_regex}}
           - ctrlC
-          - abort: Log file ${{log_file}} didn't match regex ${{log_regex}} after 10 minutes
+          - abort: Log file ${{log_file}} didn't match regex ${{log_regex}} after 1 minute
 
   monitor-processes:
+    - script: trace-progress
+      with:
+        scope: monitor
+        phase: start
+        runtime: ${{runtime_name}}
+        test: ${{test:}}
+        iteration: ${{iteration}}
+        detail: pid=${{pid}}
     - set-signal: LOAD_TEST_COMPLETE 1
     - script:
         name: monitor-process
@@ -571,6 +1258,9 @@ scripts:
         name: pidstat
         command: pidstat -u -p ${{pid}} 1
         log_file: ${{log_dir}}/pidstat-${{runtime_name}}-${{iteration}}.log
+        runtime_name: ${{runtime_name}}
+        test: ${{test:}}
+        iteration: ${{iteration}}
     - script:
         name: monitor-process
         async: true
@@ -578,6 +1268,9 @@ scripts:
         name: mpstat
         command: mpstat -P ALL 1
         log_file: ${{log_dir}}/mpstat-${{runtime_name}}-${{iteration}}.log
+        runtime_name: ${{runtime_name}}
+        test: ${{test:}}
+        iteration: ${{iteration}}
     - script:
         name: monitor-process
         async: true
@@ -585,7 +1278,21 @@ scripts:
         name: vmstat
         command: vmstat 1
         log_file: ${{log_dir}}/vmstat-${{runtime_name}}-${{iteration}}.log
+        runtime_name: ${{runtime_name}}
+        test: ${{test:}}
+        iteration: ${{iteration}}
     - script: monitor-postgres
+      with:
+        runtime_name: ${{runtime_name}}
+        iteration: ${{iteration}}
+        test: ${{test:}}
+    - script: trace-progress
+      with:
+        scope: monitor
+        phase: started
+        runtime: ${{runtime_name}}
+        test: ${{test:}}
+        iteration: ${{iteration}}
 
   monitor-postgres:
     - sh: POSTGRES_PID=$(${{PROJ_REPO_DIR}}/scripts/infra.sh -r)
@@ -598,17 +1305,49 @@ scripts:
         name: postgres-pidstat
         command: pidstat -u -p $(pgrep -d , -P ${{POSTGRES_PID}}) 1
         log_file: ${{log_dir}}/postgres-pidstat-${{runtime_name}}-${{iteration}}.log
+        runtime_name: ${{runtime_name}}
+        test: ${{test:}}
+        iteration: ${{iteration}}
+    - script: trace-progress
+      with:
+        scope: monitor
+        phase: postgres-attached
+        runtime: ${{runtime_name}}
+        test: ${{test:}}
+        iteration: ${{iteration}}
+        detail: postgres_pid=${{POSTGRES_PID}}
 
   monitor-process:
     - queue-download: ${{log_file}}
+    - script: trace-progress
+      with:
+        scope: monitor
+        phase: launch
+        runtime: ${{runtime_name:}}
+        test: ${{test:}}
+        iteration: ${{iteration:}}
+        detail: name=${{name}} log=${{log_file}}
     - sh: ${{MONITOR_CMD_PREFIX}} ${{command}} &>${{log_file}} &
     - sh: PROCESS_PID=$!
     - sh: echo $PROCESS_PID
     - set-state: PROCESS_PID
     - wait-for: ${{monitor_complete_signal:LOAD_TEST_COMPLETE}}
     - sh: kill -15 $PROCESS_PID
+    - script: trace-progress
+      with:
+        scope: monitor
+        phase: stopped
+        runtime: ${{runtime_name:}}
+        test: ${{test:}}
+        iteration: ${{iteration:}}
+        detail: name=${{name}} pid=${{PROCESS_PID}}
 
   download-metrics:
+    - script: trace-progress
+      with:
+        scope: finalization
+        phase: start
+        detail: metrics_dir=${{METRICS_DIR}}
     - sh: mkdir -p ${{METRICS_DIR}}
     - script: sudo
       with:
@@ -621,6 +1360,11 @@ scripts:
         then:
         - abort: Could not output metrics. Permission denied!
     - queue-download: ${{METRICS_DIR}}/metrics.json
+    - script: trace-progress
+      with:
+        scope: finalization
+        phase: complete
+        detail: metrics=${{METRICS_DIR}}/metrics.json
 #    - queue-download: ${{REPO_DIR}}/logs/*
 
 hosts:
